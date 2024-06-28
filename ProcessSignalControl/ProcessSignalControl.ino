@@ -19,16 +19,13 @@
 
   https://www.arduino.cc/en/Tutorial/BuiltInExamples/AnalogInOutSerial
 */
-// To use ArduinoGraphics APIs, please include BEFORE Arduino_LED_Matrix
-#include "ArduinoGraphics.h"
-#include "Arduino_LED_Matrix.h"
 
 #include "RTC.h"
 
 
 // Define a reasonable maximum number of steps
 #define MAX_PAIRS 20
-#define MAX_VOLTAGE_MV 4710
+#define MAX_VOLTAGE_MV 4710.0
 // Structure to hold the integer and float steps
 typedef struct {
   long time_seconds;
@@ -59,14 +56,15 @@ char tempChars[numChars];      // temporary array for use when parsing
 boolean newData = false;
 boolean newSequence = false;
 boolean sequenceRunning = false;
+boolean calibrationMode = false;
+int calibrationStep = 0;
+int calibrationVoltageADC = 0;
 int dataNumber = 0;  // new for this version
 int ref_voltage = 0;
 int current_step = 0;
 
 RTCTime step_start_time;
 RTCTime cur_start_time;
-ArduinoLEDMatrix matrix;
-
 
 void printSteps(int numSteps) {
   // Example: Output the steps to the serial monitor
@@ -129,6 +127,23 @@ void parseData() {
   }
   minFlowRate = atof(strtokIndx);
   strtokIndx = strtok(NULL, ",");
+
+  if (minFlowRate == 0) {
+    if (calibrationStep == 0) {
+      if (strtokIndx == NULL) {
+        Serial.println("Malformed calibration string received, failed parsing min offset voltage (mV).");
+        return;
+      }
+      offsetVoltage = atoi(strtokIndx);
+      offsetVoltage = (offsetVoltage > MAX_VOLTAGE_MV) ? MAX_VOLTAGE_MV : offsetVoltage;  // Limit the offset voltage
+      Serial.print("Offset Voltage: ");
+      Serial.print(offsetVoltage);
+      Serial.println("mV");
+    }
+    calibrationMode = true;
+    calibrationStep += 1;
+    return;
+  }
 
   if (strtokIndx == NULL) {
     Serial.println("Malformed string received, failed parsing maximum flow rate. Should be a floating point number.");
@@ -220,12 +235,18 @@ void setFlowRate(float newRate) {
     outputValue = 0;
   } else {
     // Map new flow rate to voltage value corresponding to between min and max flow rate, considering offsetVoltage
-    offsetVoltageADC = floor((float)(offsetVoltage / MAX_VOLTAGE_MV) * 4096) + 20;
-    outputValue = floatMap(newRate, minFlowRate, maxFlowRate, offsetVoltageADC, MAX_VOLTAGE_MV);
+    offsetVoltageADC = floor((float)(offsetVoltage / MAX_VOLTAGE_MV) * 4095.0);
+    outputValue = floatMap(newRate, minFlowRate, maxFlowRate, offsetVoltageADC, 4095);
+    Serial.print("Calibration voltage: ");
+    Serial.print(offsetVoltage);
+    Serial.print("\tCalibration voltage ADC: ");
+    Serial.println(offsetVoltageADC);
+    Serial.print("\tFlow Rate Mapped ADC: ");
+    Serial.println(outputValue);
   }
   // change the analog out value:
   analogWrite(A0, outputValue);
-  fraction_voltage = (float)(outputValue / 4096.0);
+  fraction_voltage = (float)(outputValue / 4095.0);
 
   // print the results to the Serial Monitor:
   Serial.print("New flow rate received: ");
@@ -236,9 +257,30 @@ void setFlowRate(float newRate) {
   Serial.print(fraction_voltage);
   Serial.print("\t Output_voltage = ");
   Serial.print(fraction_voltage * MAX_VOLTAGE_MV);
-  Serial.println(" mV.");
+  Serial.print(" mV.");
+  Serial.print("\t Output_flow_rate = ");
+  Serial.print( (((maxFlowRate - minFlowRate) * (outputValue/4095.0)) + minFlowRate));
+  Serial.println(" RPM.");
 }
 
+
+void print_menu(void) {
+  Serial.println("----------------------------");
+  Serial.println("Enter sequence information without spaces, beginning with '<' and ending with '>' : ");
+  Serial.println("Format: <MinFlowRate_RPM,MaxFlowRate_RPM,OffsetVoltage_mV,#Steps,Step1Duration_seconds,Step1FlowRate_rpm,...,StepNDuration_seconds,StepNFlowRate_rpm>");
+  Serial.println("Example: ");
+  Serial.println("\tMin flow rate: 0.7 RPM, Max flow rate: 14.5 RPM");
+  Serial.println("\tProcess offset voltage: 40 mV, Number of steps: 2");
+  Serial.println("\tStep 1: 12 seconds at 2.5 RPM");
+  Serial.println("\tStep 2: 3500 seconds at 2.7 RPM");
+  Serial.println("\t<0.7,14.5,40,2,12,2.5,3500,2.7>");
+  Serial.println("Send <0, OffsetVoltage_mV> to enter calibration mode outputting signal offset voltage. ");
+  Serial.println("Example: ");
+  Serial.println("\tMin offset voltage: 400 mV");
+  Serial.println("\t<0, 400>");
+  Serial.println("Note that voltages will not be 100% accurate due to unavoidable limitations in Arduino hardware.");
+  Serial.println("----------------------------");
+}
 
 void setup() {
   // initialize serial communications at 9600 bps:
@@ -249,14 +291,7 @@ void setup() {
   RTCTime mytime(24, Month::JUNE, 2024, 0, 00, 00, DayOfWeek::MONDAY, SaveLight::SAVING_TIME_ACTIVE);
   RTC.setTime(mytime);
 
-  Serial.println("Enter sequence information without spaces, beginning with '<' and ending with '>' : ");
-  Serial.println("Format: <MinFlowRate_RPM,MaxFlowRate_RPM,OffsetVoltage_mV,#Steps,Step1Duration_seconds,Step1FlowRate_rpm,...,StepNDuration_seconds,StepNFlowRate_rpm>");
-  Serial.println("Example: ");
-  Serial.println("\tMin flow rate: 0.7 RPM, Max flow rate: 14.5 RPM");
-  Serial.println("\tProcess offset voltage: 40 mV, Number of steps: 2");
-  Serial.println("\tStep 1: 12 seconds at 2.5 RPM");
-  Serial.println("\tStep 2: 3500 seconds at 2.7 RPM");
-  Serial.println("\t<0.7,14.5,40,2,12,2.5,3500,2.7>");
+  print_menu();
 }
 
 void loop() {
@@ -269,6 +304,36 @@ void loop() {
     parseData();
     // showParsedData();
     newData = false;
+  }
+
+  if (calibrationMode) {
+    if (calibrationStep == 1) {
+      calibrationVoltageADC = floor((((float)offsetVoltage / MAX_VOLTAGE_MV) * 4095.0));
+      Serial.print("Calibration voltage: ");
+      Serial.print(offsetVoltage);
+      Serial.print("\tCalibration voltage ADC: ");
+      Serial.print(calibrationVoltageADC);
+      Serial.print("\tFraction: ");
+      Serial.println((float)(offsetVoltage / MAX_VOLTAGE_MV));
+
+      analogWrite(A0, calibrationVoltageADC);
+      Serial.println("Outputting minimum process signal voltage.");
+      Serial.println("Send <0> to proceed to max process signal output voltage (~4.71 to 5 Volts).\n");
+      calibrationMode = false;
+    }
+    if (calibrationStep == 2) {
+      analogWrite(A0, 4095);
+      Serial.println("Outputting maximum process signal voltage.");
+      Serial.println("Send <0> again to finish calibration.\n");
+      calibrationMode = false;
+    }
+    if (calibrationStep == 3) {
+      analogWrite(A0, 0);
+      calibrationMode = false;
+      calibrationStep = 0;
+      Serial.println("Calibration mode exited.\n");
+      print_menu();
+    }
   }
 
   // Set the step start time to now, start at step 0, set flow rate for step 0, start sequence
@@ -299,7 +364,7 @@ void loop() {
       setFlowRate(0);  // Set flow rate to off
       Serial.println("Sequence run successfully.");
     } else {
-      Serial.println("Changing to next step...");
+      Serial.println("Changing to next step...\n");
       Serial.print("Step ");
       Serial.print(current_step + 1);
       Serial.print(": ");
