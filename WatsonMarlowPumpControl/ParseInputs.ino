@@ -101,6 +101,7 @@ void parseInputData() {
     //  Otherwise assume the incoming data string contains steps
     if (calibrationStep == 1) {
       parseCalibrationString(strtokIndx);
+      return;
     } else if (calibrationStep != 0) {
       Serial.println("Calibration ongoing. Send \"<e>\" to cancel calbration.");
       return;
@@ -149,12 +150,7 @@ void parseCalibrationString(char* strtokIndx) {
 
   printCalibrationParams();
 
-  EEPROM.update(EEProm_Addr_MinFlowRate, minFlowRate);
-  EEPROM.update(EEProm_Addr_MaxFlowRate, maxFlowRate);
-  EEPROM.update(EEProm_Addr_OffsetVoltage, offsetVoltage);
-
   calibrationMode = true;
-  calibrationStep += 1;
 }
 
 void printSteps(int numSteps) {
@@ -176,8 +172,6 @@ void printSteps(int numSteps) {
 
 // Takes in string containing step information and inserts into IntFloatStep steps array
 void parseStepString(char* strtokIndx) {
-
-  strtokIndx = strtok(NULL, ",");
 
   do {
     if (strtokIndx == NULL) {

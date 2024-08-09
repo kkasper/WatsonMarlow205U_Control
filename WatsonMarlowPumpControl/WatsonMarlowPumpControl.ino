@@ -64,6 +64,7 @@ void print_menu(void) {
   Serial.println("\t\t...");
   Serial.println("\tStep 5: 2150 seconds at 3.8 RPM");
   Serial.println("\t<12,2.5,3500,2.7,...,2150,3.8>");
+  Serial.println("Keep sending step sequences until you have loaded your desired steps.");
   Serial.println("Because the Arduino's serial input buffer is limited, insert at most 5 steps per Serial message.");
   Serial.println("Send \"<s>\" after inputting all your steps (up to 30 steps maximum) to begin processing.");
   Serial.println("Send \"<r>\" at any point to clear all steps.");

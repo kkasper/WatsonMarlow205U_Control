@@ -65,6 +65,7 @@ void processCalibrationStep(void) {
       Serial.println("\tMin offset voltage: 400 (mV)");
       Serial.println("\t<0.7,14.5,400>");
       Serial.println("Send \"<e>\" at any point to exit calibration.");
+      calibrationStep += 1;
       calibrationMode = false;
       break;
 
@@ -93,7 +94,10 @@ void processCalibrationStep(void) {
 
     case 3:
       analogWrite(A0, 0);
-      Serial.println("Calibration complete.\n");
+      Serial.println("Calibration complete. Parameters stored in Arduino EEPROM.\n");
+      EEPROM.update(EEProm_Addr_MinFlowRate, minFlowRate);
+      EEPROM.update(EEProm_Addr_MaxFlowRate, maxFlowRate);
+      EEPROM.update(EEProm_Addr_OffsetVoltage, offsetVoltage);
       print_menu();
       calibrationStep = 0;
       calibrationMode = false;
