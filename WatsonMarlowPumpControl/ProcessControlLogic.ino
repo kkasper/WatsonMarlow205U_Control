@@ -4,7 +4,7 @@
  *    File: ParseControlLogic.ino
  *    Description: Contains functional logic for controlling pump.
  *      
- *    Author: Kevin Kasper, Aug 2024
+ *    Author: Kevin A. Kasper, Aug 2024
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 

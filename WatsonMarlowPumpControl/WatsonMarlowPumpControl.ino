@@ -3,8 +3,11 @@
  *
  *    File: WatsonMarlowPumpControl.ino
  *    Description: Main src file for controlling Watson Marlow 205U peristaltic pump. 
- *      Useful for running pump as chemostat.
- *    Author: Kevin Kasper, Aug 2024
+ *      Useful for running pump as chemostat. Originally written for an Arduino R4 WiFi.
+ *      You may have to reduce MAX_STEPS if your Arduino has limited memory.
+ *    Author: Kevin A. Kasper, Aug 2024
+ *    See github repo: https://github.com/kkasper/WatsonMarlow205U_Control
+ *    Contact me at: KevinAKasper at gmail dot com
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -13,7 +16,7 @@
 #include "EEPROM.h"
 
 // Define a reasonable maximum number of steps (has to fit in Arduino memory)
-#define MAX_STEPS 30
+#define MAX_STEPS 100
 #define MAX_VOLTAGE_MV 4710.0
 #define EEProm_Addr_MinFlowRate 0x00
 #define EEProm_Addr_MaxFlowRate 0x04
@@ -56,7 +59,7 @@ RTCTime cur_time;
 
 void print_menu(void) {
   Serial.println("----------------------------");
-  Serial.println("Enter sequence information without spaces, beginning with '<' and ending with '>' : ");
+  Serial.println("Enter sequence information without spaces at any time, beginning with '<' and ending with '>' : ");
   Serial.println("Format: <Step1Duration_seconds,Step1FlowRate_rpm,...,StepNDuration_seconds,StepNFlowRate_rpm>");
   Serial.println("Example sequence: ");
   Serial.println("\tStep 1: 12 seconds at 2.5 RPM");
@@ -66,7 +69,9 @@ void print_menu(void) {
   Serial.println("\t<12,2.5,3500,2.7,...,2150,3.8>");
   Serial.println("Keep sending step sequences until you have loaded your desired steps.");
   Serial.println("Because the Arduino's serial input buffer is limited, insert at most 5 steps per Serial message.");
-  Serial.println("Send \"<s>\" after inputting all your steps (up to 30 steps maximum) to begin processing.");
+  Serial.println("The Excel file in the GitHub repo will generate these strings for you.");
+  Serial.println("GitHub repo: https://github.com/kkasper/WatsonMarlow205U_Control");
+  Serial.println("Send \"<s>\" after inputting all your steps (up to 100 steps maximum) to begin processing.");
   Serial.println("Send \"<r>\" at any point to clear all steps.");
   Serial.println("Send \"<c>\" to enter calibration mode and set min/max flow rate and signal offset voltage.");
   Serial.println("Note that voltages will not be 100% accurate due to unavoidable limitations in Arduino hardware.");
