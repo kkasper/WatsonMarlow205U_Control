@@ -71,24 +71,22 @@ void processCalibrationStep(void) {
 
     case 1:
       calibrationVoltageADC = floor((((float)offsetVoltage / MAX_VOLTAGE_MV) * 4095.0));
-      Serial.print("Calibration voltage: ");
+      Serial.print("Offset voltage: ");
       Serial.print(offsetVoltage);
-      Serial.print("\tCalibration voltage ADC: ");
+      Serial.print("\Offset voltage ADC: ");
       Serial.print(calibrationVoltageADC);
       Serial.print("\tFraction: ");
       Serial.println((float)(offsetVoltage / MAX_VOLTAGE_MV));
       analogWrite(A0, calibrationVoltageADC);
-      Serial.println("Outputting minimum process signal voltage.");
-      Serial.println("Send <c> to proceed to max process signal output voltage (~4.71 to 5 Volts).\n");
-      calibrationStep += 1;
+      Serial.println("Outputting minimum (LOW) process signal voltage.");
+      Serial.println("Send <h> to output maximum (HIGH) process signal output voltage (~4.71 to 5 Volts), or <c> to finish and save calibration.");
       calibrationMode = false;
       break;
 
     case 2:
       analogWrite(A0, 4095);
-      Serial.println("Outputting maximum process signal voltage.");
-      Serial.println("Send <c> again to finish calibration.\n");
-      calibrationStep += 1;
+      Serial.println("Outputting maximum (HIGH) process signal voltage.");
+      Serial.println("Send <l> (lowercase L) to output minimum (LOW) process signal voltage, or <c> to finish and save calibration.");
       calibrationMode = false;
       break;
 

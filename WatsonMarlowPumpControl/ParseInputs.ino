@@ -62,24 +62,16 @@ void parseInputData() {
     }
 
     switch (*input) {
+
+      // Change so that c just completes and saves the calibration
       case 'c':
       case 'C':
         if (calibrationStep == 0) {
           Serial.println("Starting calibration.");
+        } else {
+          calibrationStep = 3;
         }
         calibrationMode = true;
-        break;
-
-      case 's':
-      case 'S':
-        Serial.println("Commencing sequence.");
-        newSequence = true;
-        break;
-
-      case 'r':
-      case 'R':
-        Serial.println("Cleared all steps.");
-        numSteps = 0;
         break;
 
       case 'e':
@@ -93,21 +85,49 @@ void parseInputData() {
         }
         break;
 
+      case 'h':
+      case 'H':
+        calibrationStep = 2;
+        calibrationMode = true;
+        break;
+
+      case 'l':
+      case 'L':
+        calibrationStep = 1;
+        calibrationMode = true;
+        break;
+
+      case 'r':
+      case 'R':
+        Serial.println("Cleared all steps.");
+        numSteps = 0;
+        break;
+
+      case 's':
+      case 'S':
+        Serial.println("Commencing sequence.");
+        newSequence = true;
+        break;
+
       default:
         Serial.println("Invalid command received.");
     }
   } else {
     //  If a non-command was sent over, check if a calibration is ongoing.
     //  Otherwise assume the incoming data string contains steps
+
+    // Sometimes calibration step leaks through to parse step string?
     if (calibrationStep == 1) {
       parseCalibrationString(strtokIndx);
       return;
     } else if (calibrationStep != 0) {
       Serial.println("Calibration ongoing. Send \"<e>\" to cancel calbration.");
       return;
+    } else {
+      // Moved this into this conditional which is only true when calibrationStep == 0
+      // which should be the case for normal operation???
+      parseStepString(strtokIndx);
     }
-
-    parseStepString(strtokIndx);
   }
 }
 

@@ -11,6 +11,10 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+// Command to abort, command to pause
+// When clearing steps, also stop current sequence
+// List all steps
+// 
 
 #include "RTC.h"
 #include "EEPROM.h"
@@ -88,7 +92,7 @@ void setup() {
   EEPROM.get(EEProm_Addr_OffsetVoltage, offsetVoltage);
 
   RTC.begin();
-  RTCTime mytime(24, Month::JUNE, 2024, 0, 00, 00, DayOfWeek::MONDAY, SaveLight::SAVING_TIME_ACTIVE);
+  RTCTime mytime(15, Month::NOVEMBER, 2024, 0, 00, 00, DayOfWeek::FRIDAY, SaveLight::SAVING_TIME_ACTIVE);
   RTC.setTime(mytime);
 
   print_menu();
