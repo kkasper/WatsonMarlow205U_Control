@@ -4,52 +4,53 @@
  *    File: ParseControlLogic.ino
  *    Description: Contains functional logic for controlling pump.
  *      
- *    Author: Kevin A. Kasper, Aug 2024
+ *    Author: Kevin Kasper, Aug 2024
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-
-
 void processSequenceStep(void) {
-  // Set the step start time to now, start at step 0, set flow rate for step 0, start sequence
-  if (newSequence == true) {
-    newSequence = false;
-    current_step = 0;
 
-    Serial.println("Processing new sequence:");
-    Serial.print("Step ");
-    Serial.print(current_step + 1);
-    Serial.print(" : ");
-    Serial.print(steps[current_step].time_seconds);
-    Serial.print(" seconds at ");
-    Serial.print(steps[current_step].flow_rate);
-    Serial.println(" RPM.");
-    RTC.getTime(step_start_time);
-    setFlowRate(steps[current_step].flow_rate);
-    sequenceRunning = true;
-  }
-
-  // Get current time, check if sequence is running, check if elapsed seconds is greater than current step runtime
-  RTC.getTime(cur_time);
-  if ((sequenceRunning == true) && (difftime(cur_time.getUnixTime(), step_start_time.getUnixTime()) > steps[current_step].time_seconds)) {
-    current_step = current_step + 1;
-    if (current_step == numSteps) {
-      sequenceRunning = false;
-      setFlowRate(0);  // Set flow rate to off
-      Serial.println("Sequence run successfully.");
-    } else {
-      Serial.println("Changing to next step...\n");
+  if (sequencePaused == false) {
+    // Set the step start time to now, start at step 0, set flow rate for step 0, start sequence
+    if (newSequence == true) {
+      newSequence = false;
+      current_step = 0;
+      pause_duration = 0;
+      Serial.println("Processing new sequence:");
       Serial.print("Step ");
       Serial.print(current_step + 1);
-      Serial.print(": ");
+      Serial.print(" : ");
       Serial.print(steps[current_step].time_seconds);
       Serial.print(" seconds at ");
       Serial.print(steps[current_step].flow_rate);
       Serial.println(" RPM.");
-
       RTC.getTime(step_start_time);
-      // set step(current_step).flow_rate
       setFlowRate(steps[current_step].flow_rate);
+      sequenceRunning = true;
+    }
+
+    // Get current time, check if sequence is running, check if elapsed seconds is greater than current step runtime
+    RTC.getTime(cur_time);
+    if ((sequenceRunning == true) && ((difftime(cur_time.getUnixTime(), step_start_time.getUnixTime()) - pause_duration) > steps[current_step].time_seconds)) {
+      current_step = current_step + 1;
+      if (current_step == numSteps) {
+        sequenceRunning = false;
+        setFlowRate(0);  // Set flow rate to off
+        Serial.println("Sequence run successfully.");
+      } else {
+        Serial.println("Changing to next step...\n");
+        Serial.print("Step ");
+        Serial.print(current_step + 1);
+        Serial.print(": ");
+        Serial.print(steps[current_step].time_seconds);
+        Serial.print(" seconds at ");
+        Serial.print(steps[current_step].flow_rate);
+        Serial.println(" RPM.");
+
+        RTC.getTime(step_start_time);
+        setFlowRate(steps[current_step].flow_rate);
+        pause_duration = 0;
+      }
     }
   }
 }
@@ -73,7 +74,7 @@ void processCalibrationStep(void) {
       calibrationVoltageADC = floor((((float)offsetVoltage / MAX_VOLTAGE_MV) * 4095.0));
       Serial.print("Offset voltage: ");
       Serial.print(offsetVoltage);
-      Serial.print("\Offset voltage ADC: ");
+      Serial.print("\tOffset voltage ADC: ");
       Serial.print(calibrationVoltageADC);
       Serial.print("\tFraction: ");
       Serial.println((float)(offsetVoltage / MAX_VOLTAGE_MV));

@@ -63,6 +63,15 @@ void parseInputData() {
 
     switch (*input) {
 
+      case 'a':
+      case 'A':
+        Serial.println("Aborting run.");
+        newSequence = false;
+        sequenceRunning = false;
+        sequencePaused = false;
+        current_step = 0;
+        break;
+
       // Change so that c just completes and saves the calibration
       case 'c':
       case 'C':
@@ -97,6 +106,31 @@ void parseInputData() {
         calibrationMode = true;
         break;
 
+      case 'p':
+      case 'P':
+        if (sequencePaused) {
+          RTC.getTime(pause_end_time);
+          // In case user pauses multiple times, we just append to pause_duration. This is reset at beginning of next step or start of new sequence.
+          pause_duration = pause_duration + difftime(pause_end_time.getUnixTime(), pause_start_time.getUnixTime());
+          // TODO: add message stating how long left in current step.
+          Serial.println("Unpausing.");
+          sequencePaused = false;
+          // This REALLY should not go here, but it should work for now. TODO: move to ProcessControlLogic
+          setFlowRate(steps[current_step].flow_rate);
+        } else {
+          if (sequenceRunning) {
+            Serial.println("Pausing run. Send \"<p>\" again to unpause.");
+            sequencePaused = true;
+            RTC.getTime(pause_start_time);
+            // This also should not go here! All control logic should be in ProcessControlLogic
+            setFlowRate(0);
+          } else {
+            Serial.println("Sequence not running. Send \"<s>\" to start sequence from the beginning.");
+          }
+        }
+
+        break;
+
       case 'r':
       case 'R':
         Serial.println("Cleared all steps.");
@@ -105,7 +139,7 @@ void parseInputData() {
 
       case 's':
       case 'S':
-        Serial.println("Commencing sequence.");
+        Serial.println("Commencing sequence from step 1.");
         newSequence = true;
         break;
 

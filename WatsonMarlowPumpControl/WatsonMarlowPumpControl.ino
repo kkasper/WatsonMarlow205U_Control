@@ -52,13 +52,17 @@ boolean newData = false;
 boolean newSequence = false;
 boolean sequenceRunning = false;
 boolean calibrationMode = false;
+boolean sequencePaused = false;
 int calibrationStep = 0;
 int calibrationVoltageADC = 0;
 int ref_voltage = 0;
 int current_step = 0;
+double pause_duration = 0;
 
 RTCTime step_start_time;
 RTCTime cur_time;
+RTCTime pause_start_time;
+RTCTime pause_end_time;
 
 
 void print_menu(void) {
@@ -78,6 +82,8 @@ void print_menu(void) {
   Serial.println("Send \"<s>\" after inputting all your steps (up to 100 steps maximum) to begin processing.");
   Serial.println("Send \"<r>\" at any point to clear all steps.");
   Serial.println("Send \"<c>\" to enter calibration mode and set min/max flow rate and signal offset voltage.");
+  Serial.println("Send \"<a>\" to abort current run.");
+  Serial.println("Send \"<p>\" to pause/unpause current run.");
   Serial.println("Note that voltages will not be 100% accurate due to unavoidable limitations in Arduino hardware.");
   printCalibrationParams();
 }
